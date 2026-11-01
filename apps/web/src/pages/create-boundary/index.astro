@@ -8,7 +8,7 @@ import { HelpButton } from "@/components/create-boundary/help-dialog";
   <div class="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden">
     <header class="shrink-0 border-b border-border/80 bg-background">
       <div class="mx-auto flex h-14 w-full max-w-[1680px] items-center justify-between gap-4 px-4 sm:px-6">
-        <div class="flex min-w-0 items-center gap-2.5">
+        <a href="/" class="flex min-w-0 items-center gap-2.5">
           <img src="/favicon.svg" alt="" class="size-6" />
           <div class="flex min-w-0 items-baseline gap-2">
             <span class="truncate text-sm font-semibold">地块边界文件制作</span>
@@ -16,7 +16,7 @@ import { HelpButton } from "@/components/create-boundary/help-dialog";
               create-boundary
             </span>
           </div>
-        </div>
+        </a>
         <div class="flex shrink-0 items-center gap-4">
           <HelpButton client:load />
           <a

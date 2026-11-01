@@ -1,0 +1,101 @@
+---
+import Base from "@/layouts/base.astro";
+
+interface ToolItem {
+  href: string;
+  title: string;
+  slug: string;
+  description: string;
+  tags: string[];
+}
+
+const tools: ToolItem[] = [
+  {
+    href: "/create-boundary/",
+    title: "地块边界文件制作",
+    slug: "create-boundary",
+    description:
+      "把 CSV / KML / KMZ 坐标转换成 CGCS2000 坐标系的地块边界 Shapefile（ZIP），支持多文件合并、地图预览与中心点坐标。",
+    tags: ["CSV", "KML", "KMZ", "Shapefile"],
+  },
+];
+---
+
+<Base
+  title="工具 · tools.liuxs.pro"
+  description="一些自用的在线小工具：纯静态、无需账号，数据只在浏览器内处理。"
+>
+  <div class="flex min-h-dvh flex-col">
+    <header class="shrink-0 border-b border-border/80 bg-background">
+      <div class="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
+        <a href="/" class="flex min-w-0 items-center gap-2.5">
+          <img src="/favicon.svg" alt="" class="size-6" />
+          <div class="flex min-w-0 items-baseline gap-2">
+            <span class="truncate text-sm font-semibold">工具箱</span>
+            <span class="hidden font-mono text-[11px] text-muted-foreground sm:inline">
+              tools.liuxs.pro
+            </span>
+          </div>
+        </a>
+        <a
+          href="https://github.com/liuxspro/tools"
+          target="_blank"
+          rel="noreferrer"
+          class="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          GitHub
+        </a>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1200px] flex-1 px-4 sm:px-6">
+      <section class="py-12 sm:py-16">
+        <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">工具</h1>
+        <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          一些自用的在线小工具。纯静态、无需账号，数据只在浏览器里处理，不会上传。
+        </p>
+      </section>
+
+      <ul class="grid gap-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <li>
+            <a
+              href={tool.href}
+              class="group flex h-full flex-col rounded-xl border border-border/80 bg-card p-5 transition-colors hover:border-ring/60 hover:bg-accent/40"
+            >
+              <div class="flex items-baseline justify-between gap-2">
+                <h2 class="text-base font-semibold tracking-tight">
+                  {tool.title}
+                </h2>
+                <span class="font-mono text-[11px] text-muted-foreground">
+                  {tool.slug}
+                </span>
+              </div>
+              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {tool.description}
+              </p>
+              <div class="mt-auto flex flex-wrap gap-1.5 pt-4">
+                {tool.tags.map((tag) => (
+                  <span class="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-secondary-foreground">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </a>
+          </li>
+        ))}
+        <li>
+          <div class="flex h-full min-h-32 items-center justify-center rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+            更多工具准备中…
+          </div>
+        </li>
+      </ul>
+    </main>
+
+    <footer class="border-t border-border/80">
+      <div class="mx-auto w-full max-w-[1200px] px-4 py-6 text-center text-xs text-muted-foreground sm:px-6">
+        © {new Date().getFullYear()} tools.liuxs.pro · Code With 💖
+      </div>
+    </footer>
+  </div>
+</Base>
