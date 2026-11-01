@@ -1,0 +1,17 @@
+{
+  "name": "tools",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tools/web dev",
+    "build": "pnpm --filter @tools/web build",
+    "check": "pnpm --filter @tools/web check",
+    "web:test": "pnpm --filter @tools/web test",
+    "cli:build": "pnpm --filter @liuxspro/create-boundary-cli build",
+    "cli:test": "pnpm --filter @liuxspro/create-boundary-cli test"
+  }
+}

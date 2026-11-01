@@ -1,0 +1,37 @@
+{
+  "name": "@tools/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test scripts/centroid.test.ts scripts/cells.test.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.1.2",
+    "@jsr/liuxspro__create-boundary": "^0.4.0",
+    "@jsr/liuxspro__geo": "^0.3.2",
+    "@radix-ui/react-slot": "^1.5.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.4.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.64.0",
+    "maplibre-gl": "^6.16.0",
+    "proj4": "^2.22.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3"
+  }
+}

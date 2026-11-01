@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
+# 自研包刚发布时不满足 pnpm 的最小发布年龄策略，这里放行
+minimumReleaseAgeExclude:
+  - "@jsr/liuxspro__create-boundary"
+  - "@jsr/liuxspro__geo"
