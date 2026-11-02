@@ -1,6 +1,6 @@
 {
   "name": "@liuxspro/create-boundary-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "生成地块调查边界 Shapefile ZIP 的命令行工具，包装 @liuxspro/create-boundary",
   "license": "ISC",
   "repository": {

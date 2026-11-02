@@ -264,7 +264,7 @@ test("--ydmj / --dh 覆盖自动计算值，且不再提示自动计算", async 
     "--ydmj",
     "129068.42",
     "--dh",
-    "40",
+    "39",
     "-s",
     "详细调查",
     "-o",
@@ -275,7 +275,7 @@ test("--ydmj / --dh 覆盖自动计算值，且不再提示自动计算", async 
 
   const values = await readDbfRecord(out);
   assert.equal(values.YDMJ, "129068.42");
-  assert.equal(values.DH, "40");
+  assert.equal(values.DH, "39");
   assert.deepEqual(await readZipEntries(out), [
     "详细调查003.cpg",
     "详细调查003.dbf",
@@ -339,9 +339,12 @@ test("--scdw / --bz 写入 DBF", async () => {
   assert.equal(values.BZ, "测试备注");
 });
 
-test("未指定 -o 时默认命名为 {阶段}{DKDM}.zip", async () => {
+test("未指定 -o 时默认输出到输入文件所在目录", async () => {
+  const input = path.join(workdir, "default-output.csv");
+  await writeFile(input, await readFile(CSV_LONLAT, "utf8"));
+
   const result = await runCli([
-    CSV_LONLAT,
+    input,
     ...BASE_ARGS,
     "--dkdm",
     "007",
@@ -349,7 +352,7 @@ test("未指定 -o 时默认命名为 {阶段}{DKDM}.zip", async () => {
     "详细调查",
   ]);
   assert.equal(result.code, 0, result.stderr);
-  assert.match(result.stdout, /已生成: 详细调查007\.zip/);
+  assert.match(result.stdout, /已生成: .*详细调查007\.zip/);
   assert.deepEqual(
     await readZipEntries(path.join(workdir, "详细调查007.zip")),
     [
@@ -423,7 +426,7 @@ test("文本字段超出 DBF 宽度时，点名参数报错（不产出文件）
     "-o",
     out,
   ]);
-  assert.equal(result.code, 1);
+  assert.equal(result.code, 2);
   assert.match(result.stderr, /--xzqdm 超出 XZQDM 字段宽度/);
   assert.match(result.stderr, /最多 12 字节，当前 16 字节/);
   await assert.rejects(readFile(out), { code: "ENOENT" });
@@ -440,7 +443,7 @@ test("字段宽度按字节校验（中文占 3 字节）", async () => {
     "-o",
     path.join(workdir, "too-long-cjk.zip"),
   ]);
-  assert.equal(result.code, 1);
+  assert.equal(result.code, 2);
   // 6 个汉字 = 18 字节 > XZQDM 的 12 字节
   assert.match(result.stderr, /--xzqdm 超出 XZQDM 字段宽度/);
   assert.match(result.stderr, /当前 18 字节/);
@@ -473,7 +476,7 @@ test("缺少必填参数时列出全部缺失项，退出码 2", async () => {
   assert.match(result.stderr, /--xzqdm <行政区代码> \(XZQDM\)/);
 });
 
-test("非法 --stage 报错，退出码 1", async () => {
+test("非法 --stage 报错，退出码 2", async () => {
   const result = await runCli([
     CSV_LONLAT,
     ...BASE_ARGS,
@@ -482,7 +485,7 @@ test("非法 --stage 报错，退出码 1", async () => {
     "-s",
     "勘测定界",
   ]);
-  assert.equal(result.code, 1);
+  assert.equal(result.code, 2);
   assert.match(result.stderr, /无效的 --stage: 勘测定界/);
 });
 
@@ -581,11 +584,11 @@ test("KML 点数据报错并给出提示", async () => {
   await assert.rejects(readFile(out), { code: "ENOENT" });
 });
 
-test("不支持的文件类型报错", async () => {
+test("不支持的文件类型报错（参数错误，退出码 2）", async () => {
   const file = path.join(workdir, "a.geojson");
   await writeFile(file, "{}");
   const result = await runCli([file, ...BASE_ARGS, "--dkdm", "306"]);
-  assert.equal(result.code, 1);
+  assert.equal(result.code, 2);
   assert.match(result.stderr, /不支持的文件类型/);
 });
 
@@ -697,8 +700,237 @@ test("标准输入可与文件混合合并", async () => {
   assert.equal(shape.parts, 2);
 });
 
-test("标准输入 - 只能出现一次", async () => {
+test("标准输入 - 只能出现一次（参数错误，退出码 2）", async () => {
   const result = await runCli(["-", "-", ...BASE_ARGS, "--dkdm", "405"]);
-  assert.equal(result.code, 1);
+  assert.equal(result.code, 2);
   assert.match(result.stderr, /标准输入 - 只能出现一次/);
+});
+
+// ── 新增校验：不再静默产出不可用文件 ─────────────────
+
+test("两列 CSV（缺编号列）→ 报错，不生成文件", async () => {
+  const two = path.join(workdir, "two-column.csv");
+  await writeFile(
+    two,
+    [
+      "3759243.435\t39478915.304",
+      "3759249.432\t39478914.593",
+      "3759271.080\t39479003.653",
+      "3759271.252\t39479004.361",
+      "3759158.074\t39479027.424",
+      "3759135.789\t39478954.614",
+    ].join("\n"),
+  );
+  const out = path.join(workdir, "two-column.zip");
+  const result = await runCli([two, ...BASE_ARGS, "--dkdm", "501", "-o", out]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /只有 2 列/);
+  assert.match(result.stderr, /CSV 需要 3 列/);
+  await assert.rejects(readFile(out), { code: "ENOENT" });
+});
+
+test("跨带数据 → 报错，不生成文件", async () => {
+  const cross = path.join(workdir, "cross-zone.csv");
+  await writeFile(
+    cross,
+    [
+      "1,38500000,3759000",
+      "2,39500000,3759000",
+      "3,39500100,3759100",
+      "4,38500100,3759100",
+    ].join("\n"),
+  );
+  const out = path.join(workdir, "cross-zone.zip");
+  const result = await runCli([
+    cross,
+    ...BASE_ARGS,
+    "--dkdm",
+    "502",
+    "-o",
+    out,
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /跨越多个 3 度带/);
+  assert.match(result.stderr, /38, 39/);
+  await assert.rejects(readFile(out), { code: "ENOENT" });
+});
+
+test("共线退化几何 → 报错，不生成文件", async () => {
+  const line = path.join(workdir, "collinear.csv");
+  await writeFile(
+    line,
+    "1,39500000,3759000\n2,39500100,3759050\n3,39500200,3759100",
+  );
+  const out = path.join(workdir, "collinear.zip");
+  const result = await runCli([line, ...BASE_ARGS, "--dkdm", "503", "-o", out]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /无法得到有效面积/);
+  await assert.rejects(readFile(out), { code: "ENOENT" });
+});
+
+test("--ydmj 非正数 → 参数错误", async () => {
+  const zero = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "504",
+    "--ydmj",
+    "0",
+  ]);
+  assert.equal(zero.code, 2);
+  assert.match(zero.stderr, /用地面积必须为正数/);
+
+  const negative = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "505",
+    "--ydmj",
+    "-5",
+  ]);
+  assert.equal(negative.code, 2);
+  assert.match(negative.stderr, /用地面积必须为正数/);
+  assert.doesNotMatch(negative.stderr, /ambiguous/);
+});
+
+test("--dkmc 空串 → 参数错误", async () => {
+  const result = await runCli([
+    CSV_LONLAT,
+    "--dkmc",
+    "",
+    "--xzqmc",
+    "示例区",
+    "--xzqdm",
+    "320000",
+    "--dkdm",
+    "506",
+    "-o",
+    path.join(workdir, "empty-dkmc.zip"),
+  ]);
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /不能为空/);
+});
+
+test("--scrq 非 YYYY-MM-DD → 参数错误", async () => {
+  for (const value of ["2026/11/02", "20260301", "2026-02-30"]) {
+    const result = await runCli([
+      CSV_LONLAT,
+      ...BASE_ARGS,
+      "--dkdm",
+      "507",
+      "--scrq",
+      value,
+      "-o",
+      path.join(workdir, "scrq-bad.zip"),
+    ]);
+    assert.equal(result.code, 2, value);
+    assert.match(result.stderr, /--scrq/, value);
+  }
+});
+
+test("--dh 与坐标带号冲突 → 参数错误", async () => {
+  const result = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "508",
+    "--dh",
+    "40",
+    "-o",
+    path.join(workdir, "dh-conflict.zip"),
+  ]);
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /冲突/);
+});
+
+test("DKDM 含文件名非法字符 → 参数错误", async () => {
+  const result = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "a/b:c",
+  ]);
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /非法字符/);
+});
+
+test("输出目录不存在时自动创建", async () => {
+  const out = path.join(workdir, "nested", "deeper", "auto-dir.zip");
+  const result = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "509",
+    "-o",
+    out,
+  ]);
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal((await readZipEntries(out)).length, 5);
+});
+
+test("--dry-run 只校验不写文件", async () => {
+  const out = path.join(workdir, "dry-run.zip");
+  const result = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "510",
+    "-o",
+    out,
+    "--dry-run",
+  ]);
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /dry-run/);
+  await assert.rejects(readFile(out), { code: "ENOENT" });
+});
+
+test("坐标点不足 3 个 → 报错并给出实际点数", async () => {
+  const file = path.join(workdir, "two-points.csv");
+  await writeFile(file, "1,39500000,3759000\n2,39500100,3759000");
+  const out = path.join(workdir, "two-points.zip");
+  const result = await runCli([
+    file,
+    ...BASE_ARGS,
+    "--dkdm",
+    "512",
+    "-o",
+    out,
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /坐标点不足 3 个（当前 2 个）/);
+  await assert.rejects(readFile(out), { code: "ENOENT" });
+});
+
+test("--json 输出结构化结果", async () => {
+  const out = path.join(workdir, "json.zip");
+  const result = await runCli([
+    CSV_LONLAT,
+    ...BASE_ARGS,
+    "--dkdm",
+    "511",
+    "-o",
+    out,
+    "--json",
+  ]);
+  assert.equal(result.code, 0, result.stderr);
+
+  const parsed = JSON.parse(result.stdout.trim()) as {
+    ok: boolean;
+    ydmj: number;
+    dh: number;
+    output: string;
+    bytes: number;
+    warnings: string[];
+  };
+  assert.equal(parsed.ok, true);
+  assert.equal(typeof parsed.ydmj, "number");
+  assert.equal(parsed.dh, 39);
+  assert.equal(parsed.output, out);
+  assert.equal(parsed.bytes > 0, true);
+  assert.deepEqual(parsed.warnings, []);
+  assert.doesNotMatch(result.stdout, /自动计算/);
 });
